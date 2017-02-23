@@ -1,0 +1,21 @@
+{
+	"name": "mNotes",
+	"version": "0.0.1",
+	"description": "A simple note taking application",
+	"main": "main.js",
+	"scripts": {
+		"start": "electron ."
+	},
+	"repository": "https://github.com/mmpataki/mnotes",
+	"keywords":[
+		"mnotes",
+		"notes",
+		"simple",
+		"cross-platform"
+	],
+	"author": "Madhusoodan P",
+	"license" : "GPL",
+	"devDependencies": {
+		"electron": "^1.4.1"
+	}
+}

@@ -1,0 +1,73 @@
+<!-- Hambergger &#9776; -->
+<html>
+
+<head>
+	<title>mNotes</title>
+	<link rel="stylesheet" href="styles.css"></link>
+	<script src='./renderer.js'></script>
+</head>
+
+<body style="margin: 0px; ">
+
+	<div style="width: 100%; height: 100%; z-index: 0; position: fixed;">
+		<div style="float: left; width: 25%;">
+
+			<div style="z-index: 1;height: 15%; border-bottom: solid 1px #444">
+				<img src="./assets/iconset3/splash.png" height="80px;" style="position: absolute;">
+				<span style="font-family: 'Gill Sans', 'Gill Sans MT', Calibri, 'Trebuchet MS', sans-serif; position: absolute; font-size: 40px; padding-left: 5px;"><b>m</b></span>
+			</div>
+
+			<div style="background: #222; height: 6%; width: 100%; font-family: Courier; font-size: 14;">
+				<div id="headerISet" style="float: right; width: 100%;">
+				</div>
+			</div>
+
+			<div id="sidePanel" style="height: 79%; float: left; width: 100%; border-top: solid 1px #444">
+				<div style="height: 10%; width: 100%;">
+					<div id='noteBookName' style="width: 100%; float: left; border-bottom: solid 1px #444; padding-bottom: 5px;">
+						<input id='nbname' type="text" class="editable-block" style="margin-top: 10px;"/>
+						<div class="iconright-nohighlight" title="Close this noteebook" onclick="close_notebook()">
+							<img src="assets/iconset3/close.png" width="25" height="25">
+						</div>
+					</div>
+				</div>
+				<ul id='notebooklist' style="overflow: hidden; overflow-y: auto; height: 89%; width: 100%;">
+
+				</ul>
+				<ul id='notelist' style="overflow: hidden; overflow-y: auto; height: 89%; width: 100%; display: none">
+
+				</ul>
+			</div>
+		</div>
+		<div style="height: 100%; float: left; width: 75%;" class="editorhelpers">
+			<div style="height: 6%;">
+
+				<div id="editorhelperISet">
+
+				</div>
+			</div>
+			<textarea id="mmlbox" style="width: 100%; height: 94%; font-size: 16px; font-family: Consolas, Courier New, Courier, monospace;"
+				onkeydown="if(event.keyCode===9){var v=this.value,s=this.selectionStart,e=this.selectionEnd;this.value=v.substring(0, s)+'\t'+v.substring(e);this.selectionStart=this.selectionEnd=s+1;return false;}"
+				spellcheck="false"></textarea>
+			<iframe style="background: #444; height: 94%; width: 100%; display: none;" id="previewpane">
+			</iframe>
+
+		</div>
+
+		<!-- overlay -->
+		<div id="myNav" class="overlay" style="display: none">
+			<a href="javascript:void(0)" class="closebtn" onclick="closeNav()">&times;</a>
+			<div class="overlay-content">
+				<input type="text" />
+			</div>
+		</div>
+
+	</div>
+
+
+	<script>
+		//require('./renderer.js');
+	</script>
+</body>
+
+</html>

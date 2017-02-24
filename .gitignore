@@ -1,0 +1,8 @@
+node_modules/**
+assets/iconset1/**
+assets/iconset2/**
+assets/dump/**
+blog/**
+.stable
+test.xml
+temp.html

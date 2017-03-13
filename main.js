@@ -11,9 +11,9 @@ const url = require('url')
 // be closed automatically when the JavaScript object is garbage collected.
 let mainWindow
 
-function createWindow () {
+function createWindow() {
   // Create the browser window.
-  mainWindow = new BrowserWindow({width: 900, height: 600})
+  mainWindow = new BrowserWindow({ width: 900, height: 600 })
 
   // and load the index.html of the app.
   mainWindow.loadURL(url.format({
@@ -57,37 +57,44 @@ app.on('activate', function () {
 
 // In this file you can include the rest of your app's specific main process
 // code. You can also put them in separate files and require them here.
-const {ipcMain} = require('electron')
+var home;
+const { ipcMain } = require('electron')
 ipcMain.on('asynchronous-message', (event, arg) => {
-  event.sender.send('asynchronous-reply', app.getPath('home'))
+  if (arg[0] == "home") {
+    home = app.getPath('home')
+    event.sender.send('asynchronous-reply', home)
+  }
+  else if (arg[0] == "print-to-pdf") {
+    console.log(arg[1])
+    const pdfPath = path.join(home, 'print.pdf')
+    const fs = require('fs')
+    hiddenWindow = new BrowserWindow({ width: 0, height: 0, show: false })
+
+    // and load the index.html of the app.
+    hiddenWindow.loadURL(url.format({
+      pathname: path.join(arg[1]),
+      protocol: 'file:',
+      slashes: true
+    }))
+
+    hiddenWindow.webContents.on('did-finish-load', () => {
+      hiddenWindow.webContents.printToPDF(
+        { pageSize: "A4", marginsType: 1, printBackground: true, printSelectionOnly: false, landscape: false },
+        function (error, data) {
+          if (error) throw error
+          fs.writeFile(pdfPath, data, function (error) {
+            if (error) {
+              throw error
+            }
+            event.sender.send('wrote-pdf', pdfPath)
+            console.log("Done");
+            hiddenWindow.close();
+          })
+        })
+    })
+  }
 })
 
 ipcMain.on('synchronous-message', (event, arg) => {
   event.returnValue = app.getPath('home')
-})
-
-ipcMain.on('print-to-pdf', function (event) {
-  const pdfPath = path.join(os.tmpdir(), 'print.pdf')
-  const win = BrowserWindow.fromWebContents(event.sender)
-  // Use default printing options
-  win.webContents.printToPDF({}, function (error, data) {
-    if (error) throw error
-    fs.writeFile(pdfPath, data, function (error) {
-      if (error) {
-        throw error
-      }
-      shell.openExternal('file://' + pdfPath)
-      event.sender.send('wrote-pdf', pdfPath)
-    })
-  })
-})
-
-ipcMain.on('open-picker', function(event) {
-    const {dialog} = require('electron');
-    dialog.showOpenDialog(
-      {properties: ['openFile', 'openDirectory', 'selectSingle']},
-      (files) => {
-          console.log(files);
-          event.sender.send('opened-file');
-      });
 })

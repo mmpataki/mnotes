@@ -14,6 +14,7 @@ var IconButtons = [
 		'icons': [
 			{ 'icon': 'attachment.png', 'class': 'iconleft', 'desc': 'Add an attachment', 'func': 'add_attachment' },
 			{ 'icon': 'preview.png', 'class': 'iconleft', 'desc': 'Preview', 'func': 'show_preview' },
+			{ 'icon': 'html.png', 'class': 'iconleft', 'desc': 'Export to HTML', 'func': 'export_html' },
 			{ 'icon': 'pdf.png', 'class': 'iconright', 'desc': 'Export to PDF.', 'func': 'export_pdf' },
 			{ 'icon': 'delete.png', 'class': 'iconright', 'desc': 'Delete this note', 'func': 'delete_note' },
 			{ 'icon': 'save.png', 'class': 'iconright', 'desc': 'Save Note', 'func': 'save_note' }
@@ -25,7 +26,7 @@ var iconSet = "assets/iconset3/";
 var iconWidth = 25;
 var iconHeight = 25;
 var iconPadding = 5;
-var mmlbox, notebooklist, notelist, previewpane, nbname, selli;
+var mmlbox, notebooklist, notelist, previewpane, nbname, nbnameval, selli;
 
 /* utils */
 var paths, fs;
@@ -35,13 +36,15 @@ var unusables = ['/', '?', ':', '>', '<', '*', '`', '@', '!', '\\', '|'];
 var HOME = "";
 var MNOTESHOME = ".mNotes";
 var MNOTES_NB_LIST_FILE = ".mNoteBookList.json";
-var MNOTES_LIST_FILE_NAME = ".mNoteList.json";
+var MNOTES_LIST_FILE_NAME;
 var MNOTES_STYLE_FILE_NAME = "noteModifiers.json";
+var MNOTES_DEFLIST_FILE_NAME = ".mNoteList.json";
 var MNOTES_GLOBAL_SCRIPTS = "globalstyles.js";
 var MNOTES_GLOBAL_STYLES = "globalstyles.css";
 var MNOTES_BOOTSTRAP_FILE = "bootstrap.min.css";
 var MNOTES_CUR_DIRECTORY = "";
 var MNOTES_SELNOTE = "";
+var MNOTES_SELNB = "";
 
 /* GLOBAL TEXT DATA */
 var MNOTES_NB_LIST = {};
@@ -64,12 +67,13 @@ window.onload = function () {
 	notelist = G('notelist');
 	notebooklist = G('notebooklist');
 	nbname = G("nbname");
+	nbnameval = G("nbnameval");
 
 	/* do initialisation stuff here. */
 
 	paths = require('path');
 	fs = require('fs');
-	const {ipcRenderer} = require('electron');
+	const { ipcRenderer } = require('electron');
 
 	ipcRenderer.on('asynchronous-reply', (event, arg) => {
 
@@ -84,7 +88,7 @@ window.onload = function () {
 		get_styles();
 
 	})
-	ipcRenderer.send('asynchronous-message', 'home')
+	ipcRenderer.send('asynchronous-message', ['home'])
 
 }
 
@@ -115,107 +119,105 @@ function addnotebook_toview(name) {
 	notebooklist.innerHTML += `<li class='unselected' onclick='hc(this)' ondblclick='open_notebook(this.innerText)'>${name}</li>`;
 }
 function get_notes() {
+	notebooklist.innerHTML = "";
 	mreadfile(MNOTES_NB_LIST_FILE, (err, data) => {
 		MNOTES_NB_LIST = JSON.parse(data);
-		for(var key in MNOTES_NB_LIST) {
+		for (var key in MNOTES_NB_LIST) {
 			addnotebook_toview(key);
 		}
 	});
 }
-function create_notebook() {
-
-	var newnbname = nbname.value;
-	if (!isvalidname(newnbname)) {
-		show_invalid_name_message();
-		return;
-	}
-
-	/* create directory */
-	var dpath = paths.join(MNOTESHOME, newnbname);
-	var exists = null;
-	fs.mkdir(dpath, (err) => { exists = err; });
-
-	if (exists != null) {
-		alert("NoteBook already exists!");
-		return;
-	}
-
-	MNOTES_NB_LIST[newnbname] = { 'cdate': Date.now(), 'ldate': Date.now() };
-	mwritefile(MNOTES_NB_LIST_FILE, JSON.stringify(MNOTES_NB_LIST));
-
-	/* write the notelist file in directory with a null set. */
-	MNOTES_LIST = {};
-	mwritefile(paths.join(dpath, MNOTES_LIST_FILE_NAME), JSON.stringify(MNOTES_LIST));
-
-	/* add to view. */
-	addnotebook_toview(newnbname);
+function create_notebook() {	//verified works...
+	openNav("notebooknameprompt");
 }
-function close_notebook() {
+function close_notebook() {  	//verified works....
 	notebooklist.style.display = "block";
 	notelist.style.display = "none";
+	save_notebook();
+	nbnameval.innerText = "";
+	MNOTES_SELNB = "";
+	MNOTES_SELNOTE = "";
 }
-function open_notebook(name) {
+function open_notebook(name) { 	//verified works....
 
 	/* open the note here */
+	MNOTES_SELNB = name;
 	MNOTES_CUR_DIRECTORY = paths.join(MNOTESHOME, name);
-	MNOTES_LIST_FILE_NAME = paths.join(MNOTES_CUR_DIRECTORY, MNOTES_LIST_FILE_NAME);
+	MNOTES_LIST_FILE_NAME = paths.join(MNOTES_CUR_DIRECTORY, MNOTES_DEFLIST_FILE_NAME);
 	var data = mreadfile(MNOTES_LIST_FILE_NAME, (err, data) => {
-		
+
+		if (err != null) {
+			MNOTES_LIST = {};
+			save_notebook();
+			return;
+		}
+
 		MNOTES_LIST = JSON.parse(data);
 		notelist.innerHTML = "";
 
-		for (var key in MNOTES_LIST) {
-			addnote_toview(key);
-		}
+		add_notes_to_view();
 
 		notebooklist.style.display = "none";
 		notelist.style.display = "block";
 	});
+	nbnameval.innerText = name;
 }
-function save_notebook() {
+
+function add_notes_to_view() {
+	notelist.innerHTML = "";
+	for (var key in MNOTES_LIST) {
+		addnote_toview(key);
+	}
+}
+
+function save_notebook() {	//verified works...
 	mwritefile(MNOTES_LIST_FILE_NAME, JSON.stringify(MNOTES_LIST));
 }
 
-/* reading notes */
-function addnote_toview(name) {
-	notelist.innerHTML += `<li class='unselected' onclick='hc(this)' ondblclick='opennote(this)'><input type='text' class='editable-block note-name-edit' value='${name}'/></li>`
+function addnote_toview(name) { //verified works...
+	notelist.innerHTML += `<li class='unselected' onclick='hc(this)' ondblclick='opennote(this)'>${name}</li>`
 }
-function create_note() {
-	
-	var name = `Note ${(Object.keys(MNOTES_LIST).length + 1)}`;
-	var newn = MNOTES_LIST[name] = { 'cdt': Date.now(), 'mdt': Date.now() };
-
-	save_notebook();
-	mwritefile(paths.join(MNOTES_CUR_DIRECTORY, newn.name + ".mml"), get_default_note(newn));
-	addnote_toview(name);
+function create_note() {	//verified works....
+	mprompt();
 }
-function save_note() {
-	
-	var changename = selli.children[0].value;
-
-	if(changename != MNOTES_SELNOTE) {
-		/* name has changed.  */
-
-		if(MNOTES_LIST[changename] != null) {
-			alert("A note with same name exists. Delete it and try to rename.");
-			return;
-		}
-
-		MNOTES_LIST[changename] = MNOTES_LIST[MNOTES_SELNOTE];
-		delete MNOTES_LIST[MNOTES_SELNOTE];
-		MNOTES_SELNOTE = changename;
-		save_notebook();
-	}
+function save_note() {		//verified works....
 	mwritefile(paths.join(MNOTES_CUR_DIRECTORY, MNOTES_SELNOTE + ".mml"), mmlbox.value);
 }
 function opennote(ele) {
-	MNOTES_SELNOTE = ele.children[0].value;
-	mreadfile(paths.join(MNOTES_CUR_DIRECTORY,  MNOTES_SELNOTE+".mml"), (err, data) => {
+	if (MNOTES_SELNOTE != "") {
+		save_note(); /* save the current note */
+	}
+	MNOTES_SELNOTE = ele.innerText;
+	mreadfile(paths.join(MNOTES_CUR_DIRECTORY, MNOTES_SELNOTE + ".mml"), (err, data) => {
 		mmlbox.value = "";
 		insertAtCursor(data);
+		previewpane.srcdoc = parseNote(mmlbox.value);
+		toggle_display("none", "block");
 	});
 }
 
+function delete_note() {
+	if (confirm("Are you sure to delete this note")) {
+		delete MNOTES_LIST[MNOTES_SELNOTE];
+		save_notebook();
+		show_defnote();
+		add_notes_to_view();
+	}
+}
+
+function delete_notebook() {
+	if (confirm("Are you sure to delete this notebook")) {
+		delete MNOTES_NB_LIST[MNOTES_SELNB];
+		close_notebook();
+		mwritefile(MNOTES_NB_LIST_FILE, JSON.stringify(MNOTES_NB_LIST));
+		get_notes();
+	}
+}
+
+function show_defnote() {
+	mmlbox.value = "";
+	show_preview();
+}
 
 function get_default_note(note) {
 	return `@header ${note.name} @br@ ${Date.parse(note.cdt).toLocaleString()} @br@ ${Date.parse(note.mdt).toLocaleString()} @`;
@@ -237,18 +239,21 @@ function isvalidname(name) {
 }
 
 function show_aboutus() {
+	openNav("aboutus");
 }
 function show_settings() {
 }
 function add_attachment() {
-	const ipc = require('electron').ipcRenderer;
-	ipc.on('wrote-pdf', function (event, path) {
-		const message = `Wrote PDF to: ${path}`;
-		alert(message);
-	});
-	ipc.send('asynchronous-message', 'open-picker');
+
+	const { dialog } = require('electron').remote;
+	var files = dialog.showOpenDialog({ properties: ['openFile', 'multiSelections'] });
+	var toins = "";
+	for (var i = 0; i < files.length; i++) {
+		toins += `@img[src='${files[i]}'] @\n`;
+	}
+	insertAtCursor(toins);
 }
-function show_preview() {
+function show_preview(type) {
 
 	if (mmlbox.style.display == "none") {
 		toggle_display("block", "none");
@@ -263,9 +268,18 @@ function export_pdf() {
 		const message = `Wrote PDF to: ${path}`;
 		alert(message);
 	});
-	ipc.send('asynchronous-message', 'print-to-pdf');
+	var xpath = paths.join(MNOTESHOME, ".temp.html");
+	mwritefile(xpath, parseNote(mmlbox.value));
+	ipc.send('asynchronous-message', ['print-to-pdf', xpath]);
 }
 
+function export_html() {
+	var html = parseNote(mmlbox.value);
+	html = html.replace(/</g, "&lt;");
+	html = html.replace(/>/g, "&gt;");
+	previewpane.srcdoc = packpage(`${MNOTES_STYLES['code'].open} ${html} ${MNOTES_STYLES['code'].close}`);
+	toggle_display("none", "block");
+}
 
 function toggle_display(formmlbox, forpreviewpane) {
 	mmlbox.style.display = formmlbox;
@@ -311,11 +325,64 @@ function insertAtCursor(itext) {
 	mmlbox.focus();
 }
 
-function openNav() {
-	document.getElementById("myNav").style.height = "100%";
+function mprompt() {
+	openNav("notenameprompt");
+}
+function nbname_submit() {
+	
+	var newnbname = nbname.value;
+	if (!isvalidname(newnbname)) {
+		show_invalid_name_message();
+		return;
+	}
+
+	/* create directory */
+	var dpath = paths.join(MNOTESHOME, newnbname);
+	var exists = null;
+	fs.mkdir(dpath, (err) => { exists = err; });
+
+	if (exists != null) {
+		alert("NoteBook already exists!");
+		return;
+	}
+
+	MNOTES_NB_LIST[newnbname] = { 'cdate': Date.now(), 'ldate': Date.now() };
+	mwritefile(MNOTES_NB_LIST_FILE, JSON.stringify(MNOTES_NB_LIST));
+
+	/* write the notelist file in directory with a null set. */
+	MNOTES_LIST = {};
+	mwritefile(paths.join(dpath, MNOTES_DEFLIST_FILE_NAME), JSON.stringify(MNOTES_LIST));
+
+	/* add to view. */
+	addnotebook_toview(newnbname);
+	closeNav();
+}
+function notenamesubmit() {
+	var name = G("notename").value;
+	if (name != null && isvalidname(name)) {
+		var newn = MNOTES_LIST[name] = { 'cdt': Date.now(), 'mdt': Date.now() };
+		save_notebook();
+		mwritefile(paths.join(MNOTES_CUR_DIRECTORY, name + ".mml"), get_default_note(name));
+		addnote_toview(name);
+	} else {
+		show_invalid_name_message();
+	}
+	closeNav();
+}
+
+function openNav(opt) {
+	var nav = G("myNav");
+	var od = G(opt);
+	od.style.display = "block";
+	nav.style.display = "block";
+	nav.style.height = "100%";
 }
 function closeNav() {
-	document.getElementById("myNav").style.height = "0%";
+	var eles = document.getElementsByClassName("overlay-content");
+	for (var i = 0; i < eles.length; i++) {
+		eles[i].style.display = "none";
+	}
+	G("myNav").style.height = "0%";
 }
 
 
@@ -333,11 +400,11 @@ function msplitchar(str, at) {
 function msplit(str) {
 
 	var i = 0;
-	for( ; i<str.length; i++)
-		if(" \t\n\r".includes(str[i]))
+	for (; i < str.length; i++)
+		if (" \t\n\r".includes(str[i]))
 			break;
-	for( ; i<str.length; i++)
-		if(!" \t\n\r".includes(str[i]))
+	for (; i < str.length; i++)
+		if (!" \t\n\r".includes(str[i]))
 			break;
 	var ret = str.split(/[ \t\n\r]/, 1);
 	ret.push(str.substr(i));
@@ -361,17 +428,17 @@ function parseNote(content = "") {
 
 	ret += rawsplit[0];
 
-	for(var i = 1; i < rawsplit.length; i++) {
+	for (var i = 1; i < rawsplit.length; i++) {
 
-		if(rawsplit[i].trim() == "") {
-			if(stk.length == 0) {
+		if (rawsplit[i].trim() == "") {
+			if (stk.length == 0) {
 				break;
 			}
 			ret += handlepop(stk.pop());
 			continue;
 		}
 
-		if(" \t\n\r".includes(rawsplit[i].charAt(0))) {
+		if (" \t\n\r".includes(rawsplit[i].charAt(0))) {
 			ret += handlepop(stk.pop());
 			ret += rawsplit[i];
 			continue;
@@ -382,8 +449,8 @@ function parseNote(content = "") {
 		var parindex = rawsplit[i].indexOf('[');
 		var spaindex = msplit(rawsplit[i])[0].length;
 
-		if(spaindex == -1 || parindex == -1) {
-			if(spaindex != -1) {
+		if (spaindex == -1 || parindex == -1) {
+			if (spaindex != -1) {
 				tagcomps = msplit(rawsplit[i]);
 			} else {
 				tagcomps = msplitchar(rawsplit[i], "]");
@@ -402,52 +469,55 @@ function parseNote(content = "") {
 
 		ret += `<${tagnattr[0]}`;
 
-		if(tagnattr.length > 1 && MNOTES_STYLES[tagnattr[0]] == null) {
+		if (tagnattr.length > 1 && MNOTES_STYLES[tagnattr[0]] == null) {
 			tagnattr[1] = tagnattr[1].replace("]", "");
 			ret += ` ${tagnattr[1].trim()}`;
 		}
 		ret += ">";
-		if(tagcomps.length > 1) {
+		if (tagcomps.length > 1) {
 			ret += tagcomps[1];
 		}
 	}
 
-	while(stk.length != 0) {
+	while (stk.length != 0) {
 		ret += handlepop(stk.pop());
 	}
 
 	ret = mreplace(ret, "&at;", "@");
 	ret = mreplace(ret, "&slash;", "\\");
 
-	for(var key in MNOTES_STYLES) {
+	for (var key in MNOTES_STYLES) {
 		ret = mreplace(ret, `<${key}>`, "");
 		ret = mreplace(ret, `</${key}>`, "");
 	}
 
+	return packpage(ret);
+}
+
+function packpage(ret) {
 	return (
 		`
-		<html>
-		<head>
-			<link rel='stylesheet' href='file://${MNOTES_BOOTSTRAP_FILE}'></link>
-			<link rel="stylesheet" href='file://${MNOTES_GLOBAL_STYLES}'></link>
-			<script src='file://${MNOTES_GLOBAL_SCRIPTS}'></script>
-		</head>
-		<body>
-			${ret}
-		</body>
-		</html>
-		`
-		);
+<html>
+	<head>
+		<link rel='stylesheet' href='file://${MNOTES_BOOTSTRAP_FILE}'></link>
+		<link rel="stylesheet" href='file://${MNOTES_GLOBAL_STYLES}'></link>
+		<script src='file://${MNOTES_GLOBAL_SCRIPTS}'></script>
+	</head>
+	<body>
+		${ret}
+	</body>
+</html>`
+	);
 }
 function handlepop(val) {
 	var ret = `</${val}>`;
-	if(MNOTES_STYLES[val] != null) {
+	if (MNOTES_STYLES[val] != null) {
 		ret += MNOTES_STYLES[val].close;
 	}
 	return ret;
 }
 function handlepush(val) {
-	if(MNOTES_STYLES[val[0]] != null) {
+	if (MNOTES_STYLES[val[0]] != null) {
 		var attr = val.length == 2 ? val[1] : "";
 		return MNOTES_STYLES[val[0]].open.replace("$", attr);
 	}

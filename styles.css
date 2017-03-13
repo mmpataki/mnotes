@@ -139,15 +139,18 @@ body {
     transition: 0.5s;
 }
 
-.editable-block {
+.editable-block-parent {
 	float: left;
-	width: 75%; 
 	padding: 5px; 
-	outline: none; 
-	border: none; 
 	font-family: 'Gill Sans', 'Gill Sans MT', Calibri, 'Trebuchet MS', sans-serif; 
-	background: transparent; 
 	padding-left: 15px; 
+	color: white; 
+	font-size: 18px;
+	display: block;
+}
+
+.editable-block {
+	font-family: 'Gill Sans', 'Gill Sans MT', Calibri, 'Trebuchet MS', sans-serif; 
 	color: white; 
 	font-size: 18px;
 }
@@ -162,6 +165,7 @@ body {
     width: 100%;
     text-align: center;
     margin-top: 30px;
+	display: none;
 }
 
 .overlay a {

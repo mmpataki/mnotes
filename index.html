@@ -24,11 +24,25 @@
 
 			<div id="sidePanel" style="height: 79%; float: left; width: 100%; border-top: solid 1px #444">
 				<div style="height: 10%; width: 100%;">
-					<div id='noteBookName' style="width: 100%; float: left; border-bottom: solid 1px #444; padding-bottom: 5px;">
-						<input id='nbname' type="text" class="editable-block" style="margin-top: 10px;"/>
-						<div class="iconright-nohighlight" title="Close this noteebook" onclick="close_notebook()">
-							<img src="assets/iconset3/close.png" width="25" height="25">
-						</div>
+					<div style="width: 100%; float: left; border-bottom: solid 1px #444; padding-bottom: 5px;">
+
+						<table class="editable-block-parent">
+							<tr>
+								<td style="width: 100%">
+									<span id='nbnameval' class="editable-block" style="margin-top: 10px;"></span>
+								</td>
+								<td>
+									<div title="Close this noteebook" onclick="close_notebook()">
+										<img src="assets/iconset3/close.png" width="20" height="20" style="margin: 5px 0px" />
+									</div>
+								</td>
+								<td>
+									<div title="Delete this notebook" onclick="delete_notebook()">
+										<img src="assets/iconset3/delete.png" width="25" height="25" />
+									</div>
+								</td>
+							</tr>
+						</table>
 					</div>
 				</div>
 				<ul id='notebooklist' style="overflow: hidden; overflow-y: auto; height: 89%; width: 100%;">
@@ -47,8 +61,8 @@
 				</div>
 			</div>
 			<textarea id="mmlbox" style="width: 100%; height: 94%; font-size: 16px; font-family: Consolas, Courier New, Courier, monospace;"
-				onkeydown="if(event.keyCode===9){var v=this.value,s=this.selectionStart,e=this.selectionEnd;this.value=v.substring(0, s)+'\t'+v.substring(e);this.selectionStart=this.selectionEnd=s+1;return false;}"
-				spellcheck="false"></textarea>
+			 onkeydown="if(event.keyCode===9){var v=this.value,s=this.selectionStart,e=this.selectionEnd;this.value=v.substring(0, s)+'\t'+v.substring(e);this.selectionStart=this.selectionEnd=s+1;return false;}"
+			 spellcheck="false"></textarea>
 			<iframe style="background: #444; height: 94%; width: 100%; display: none;" id="previewpane">
 			</iframe>
 
@@ -56,9 +70,41 @@
 
 		<!-- overlay -->
 		<div id="myNav" class="overlay" style="display: none">
+
 			<a href="javascript:void(0)" class="closebtn" onclick="closeNav()">&times;</a>
-			<div class="overlay-content">
-				<input type="text" />
+
+			<div class="overlay-content" id="notenameprompt">
+				<h1>
+					<span style="font-size: 16px">Specify the note name. Note that this cannot be changed!</span>
+					<br/>
+					<br/>
+					<input type="text" id="notename" style="padding: 15px; width: 300px; font-size: 16px" />
+					<input type="button" value="Done" style="padding: 15px" onclick="notenamesubmit()" />
+				</h1>
+			</div>
+
+			<div class="overlay-content" id="notebooknameprompt">
+				<h1>
+					<span style="font-size: 16px">Specify the notebook name. Note that this cannot be changed!</span>
+					<br/>
+					<br/>
+					<input type="text" id="nbname" style="padding: 15px; width: 300px; font-size: 16px" />
+					<input type="button" value="Done" style="padding: 15px" onclick="nbname_submit()" />
+				</h1>
+			</div>
+
+			<div class="overlay-content" id="aboutus">
+				<h1>Credits</h1>
+				<br /><br/>
+				<pre style="font-size: 24; color: white">
+	Made by Madhusoodan Pataki.
+
+	Icons by http://www.flaticon.com
+	Icon Authors
+	1. Madebyoliver [http://www.flaticon.com/authors/madebyoliver]
+	2. Freepik [http://www.flaticon.com/authors/freepik]
+	3. Dave Gandy [http://www.flaticon.com/authors/dave-gandy]
+				</pre>
 			</div>
 		</div>
 

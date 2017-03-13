@@ -13,7 +13,7 @@ var IconButtons = [
 		'parent': 'editorhelperISet',
 		'icons': [
 			{ 'icon': 'attachment.png', 'class': 'iconleft', 'desc': 'Add an attachment', 'func': 'add_attachment' },
-			{ 'icon': 'preview.png', 'class': 'iconleft', 'desc': 'Preview', 'func': 'show_preview' },
+			{ 'icon': 'preview.png', 'class': 'iconleft', 'desc': 'Preview', 'func': 'show_preview_toggler' },
 			{ 'icon': 'html.png', 'class': 'iconleft', 'desc': 'Export to HTML', 'func': 'export_html' },
 			{ 'icon': 'pdf.png', 'class': 'iconright', 'desc': 'Export to PDF.', 'func': 'export_pdf' },
 			{ 'icon': 'delete.png', 'class': 'iconright', 'desc': 'Delete this note', 'func': 'delete_note' },
@@ -29,7 +29,7 @@ var iconPadding = 5;
 var mmlbox, notebooklist, notelist, previewpane, nbname, nbnameval, selli;
 
 /* utils */
-var paths, fs;
+var paths, fs, fse;
 var unusables = ['/', '?', ':', '>', '<', '*', '`', '@', '!', '\\', '|'];
 
 /* Global variables */
@@ -43,6 +43,7 @@ var MNOTES_GLOBAL_SCRIPTS = "globalstyles.js";
 var MNOTES_GLOBAL_STYLES = "globalstyles.css";
 var MNOTES_BOOTSTRAP_FILE = "bootstrap.min.css";
 var MNOTES_ASSETS_FOLDER = "assets";
+var MNOTES_HTML_FOLDER = ".html";
 var MNOTES_CUR_DIRECTORY = "";
 var MNOTES_SELNOTE = "";
 var MNOTES_SELNB = "";
@@ -74,6 +75,7 @@ window.onload = function () {
 
 	paths = require('path');
 	fs = require('fs');
+	fse = require('fs-extra');
 	const { ipcRenderer } = require('electron');
 
 	ipcRenderer.on('asynchronous-reply', (event, arg) => {
@@ -192,8 +194,7 @@ function opennote(ele) {
 	mreadfile(paths.join(MNOTES_CUR_DIRECTORY, MNOTES_SELNOTE + ".mml"), (err, data) => {
 		mmlbox.value = "";
 		insertAtCursor(data);
-		previewpane.srcdoc = parseNote(mmlbox.value);
-		toggle_display("none", "block");
+		show_preview();
 	});
 }
 
@@ -245,29 +246,33 @@ function show_aboutus() {
 function show_settings() {
 }
 function add_attachment() {
-
 	const { dialog } = require('electron').remote;
-	const fse = require('fs-extra');
 
 	var files = dialog.showOpenDialog({ properties: ['openFile', 'multiSelections'] });
 	var toins = "";
 	for (var i = 0; i < files.length; i++) {
 		var fnamesplits = files[i].split(paths.sep);
-		var path = paths.join(MNOTES_CUR_DIRECTORY, MNOTES_ASSETS_FOLDER, fnamesplits[fnamesplits.length-1]);
-		fse.copy(files[i], path);
-		toins += `@img[src='${path}'] @\n`;
+		var fname = fnamesplits[fnamesplits.length-1];
+		fse.copy(files[i], paths.join(MNOTES_CUR_DIRECTORY, MNOTES_ASSETS_FOLDER, fname));
+		toins += `@img[src='../${paths.join(MNOTES_ASSETS_FOLDER, fname)}'] @\n`;
 	}
 	insertAtCursor(toins);
 }
-function show_preview(type) {
-
+function show_preview_toggler() {
 	if (mmlbox.style.display == "none") {
 		toggle_display("block", "none");
 		return;
 	}
-	previewpane.srcdoc = parseNote(mmlbox.value);
+	show_preview();
+}
+
+function show_preview() {
+	var path = paths.join(MNOTES_CUR_DIRECTORY, MNOTES_HTML_FOLDER, MNOTES_SELNOTE+".html");
+	mwritefile(path, parseNote(mmlbox.value));
+	previewpane.src = path;
 	toggle_display("none", "block");
 }
+
 function export_pdf() {
 	const ipc = require('electron').ipcRenderer;
 	ipc.on('wrote-pdf', function (event, path) {
@@ -347,6 +352,7 @@ function nbname_submit() {
 	var exists = null;
 	fs.mkdir(dpath, (err) => { exists = err; });
 	fs.mkdir(Paths.join(dpath, MNOTES_ASSET_FOLDER), (err) => { exists = err; });
+	fs.mkdir(Paths.join(dpath, MNOTES_HTML_FOLDER), (err) => { exists = err; });
 
 	if (exists != null) {
 		alert("NoteBook already exists!");

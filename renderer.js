@@ -42,6 +42,7 @@ var MNOTES_DEFLIST_FILE_NAME = ".mNoteList.json";
 var MNOTES_GLOBAL_SCRIPTS = "globalstyles.js";
 var MNOTES_GLOBAL_STYLES = "globalstyles.css";
 var MNOTES_BOOTSTRAP_FILE = "bootstrap.min.css";
+var MNOTES_ASSETS_FOLDER = "assets";
 var MNOTES_CUR_DIRECTORY = "";
 var MNOTES_SELNOTE = "";
 var MNOTES_SELNB = "";
@@ -246,10 +247,15 @@ function show_settings() {
 function add_attachment() {
 
 	const { dialog } = require('electron').remote;
+	const fse = require('fs-extra');
+
 	var files = dialog.showOpenDialog({ properties: ['openFile', 'multiSelections'] });
 	var toins = "";
 	for (var i = 0; i < files.length; i++) {
-		toins += `@img[src='${files[i]}'] @\n`;
+		var fnamesplits = files[i].split(paths.sep);
+		var path = paths.join(MNOTES_CUR_DIRECTORY, MNOTES_ASSETS_FOLDER, fnamesplits[fnamesplits.length-1]);
+		fse.copy(files[i], path);
+		toins += `@img[src='${path}'] @\n`;
 	}
 	insertAtCursor(toins);
 }
@@ -340,6 +346,7 @@ function nbname_submit() {
 	var dpath = paths.join(MNOTESHOME, newnbname);
 	var exists = null;
 	fs.mkdir(dpath, (err) => { exists = err; });
+	fs.mkdir(Paths.join(dpath, MNOTES_ASSET_FOLDER), (err) => { exists = err; });
 
 	if (exists != null) {
 		alert("NoteBook already exists!");

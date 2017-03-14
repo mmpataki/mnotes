@@ -42,6 +42,8 @@ textarea {
 	color: white;
 	padding: 10px;
 	outline: none;
+	white-space: pre;
+	overflow-x: hidden;
 }
 
 iframe {
@@ -87,25 +89,6 @@ div, img, ul, li, p {
 		-o-user-select: none;
 		user-select: none;
 		cursor: default;
-}
-
-select {
-		border: 1px solid #AAA;
-		box-shadow: 0px 1px 3px rgba(0, 0, 0, 0.1);
-		color: #fff;
-		margin: 0;
-		overflow: hidden;
-		text-overflow: ellipsis;
-		white-space: nowrap;
-		background-color: transparent;
-		width: 90%; 
-		padding: 5px;
-		outline-color: lightskyblue;
-}
-
-option {
-		background: #222;
-		color: #fff;
 }
 
 ul::-webkit-scrollbar {

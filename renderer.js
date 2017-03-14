@@ -82,17 +82,21 @@ window.onload = function () {
 
 		HOME = arg;
 		MNOTESHOME = paths.join(HOME, MNOTESHOME);
+
+		fs.mkdir(MNOTESHOME, (err) => {});
+		fse.copy(MNOTES_BOOTSTRAP_FILE, paths.join(MNOTESHOME, MNOTES_BOOTSTRAP_FILE));
+		fse.copy(MNOTES_GLOBAL_SCRIPTS, paths.join(MNOTESHOME, MNOTES_GLOBAL_SCRIPTS));
+		fse.copy(MNOTES_GLOBAL_STYLES, paths.join(MNOTESHOME, MNOTES_GLOBAL_STYLES));
+
 		MNOTES_NB_LIST_FILE = paths.join(MNOTESHOME, MNOTES_NB_LIST_FILE);
 		MNOTES_GLOBAL_SCRIPTS = paths.join(MNOTESHOME, MNOTES_GLOBAL_SCRIPTS);
 		MNOTES_GLOBAL_STYLES = paths.join(MNOTESHOME, MNOTES_GLOBAL_STYLES);
 		MNOTES_BOOTSTRAP_FILE = paths.join(MNOTESHOME, MNOTES_BOOTSTRAP_FILE);
-
+		
 		get_notes();
 		get_styles();
-
 	})
 	ipcRenderer.send('asynchronous-message', ['home'])
-
 }
 
 function get_styles() {
@@ -101,9 +105,10 @@ function get_styles() {
 	});
 }
 
-function mwritefile(filename, data) {
+function mwritefile(filename, data, callback) {
 	fs.writeFile(filename, data, (err) => {
 		console.log("Write Error occured => " + err);
+		callback();
 	});
 }
 
@@ -268,9 +273,10 @@ function show_preview_toggler() {
 
 function show_preview() {
 	var path = paths.join(MNOTES_CUR_DIRECTORY, MNOTES_HTML_FOLDER, MNOTES_SELNOTE+".html");
-	mwritefile(path, parseNote(mmlbox.value));
-	previewpane.src = path;
-	toggle_display("none", "block");
+	mwritefile(path, parseNote(mmlbox.value), () => {
+		previewpane.src = path;
+		toggle_display("none", "block");
+	});
 }
 
 function export_pdf() {
@@ -359,17 +365,22 @@ function nbname_submit() {
 		return;
 	}
 
-	MNOTES_NB_LIST[newnbname] = { 'cdate': Date.now(), 'ldate': Date.now() };
-	mwritefile(MNOTES_NB_LIST_FILE, JSON.stringify(MNOTES_NB_LIST));
-
 	/* write the notelist file in directory with a null set. */
 	MNOTES_LIST = {};
 	mwritefile(paths.join(dpath, MNOTES_DEFLIST_FILE_NAME), JSON.stringify(MNOTES_LIST));
+
+	addnb_todb(newnbname);
+}
+
+function addnb_todb(newnbname) {
+	MNOTES_NB_LIST[newnbname] = { 'cdate': Date.now(), 'ldate': Date.now() };
+	mwritefile(MNOTES_NB_LIST_FILE, JSON.stringify(MNOTES_NB_LIST));
 
 	/* add to view. */
 	addnotebook_toview(newnbname);
 	closeNav();
 }
+
 function notenamesubmit() {
 	var name = G("notename").value;
 	if (name != null && isvalidname(name)) {
@@ -381,6 +392,15 @@ function notenamesubmit() {
 		show_invalid_name_message();
 	}
 	closeNav();
+}
+
+function nbimport() {
+	const { dialog } = require('electron').remote;
+	var folder = dialog.showOpenDialog({ properties: ['openDirectory', 'singleSelection'] });
+	var fnamesplits = folder[0].split(paths.sep);
+	var fname = fnamesplits[fnamesplits.length-1];
+	fse.copy(folder[0], paths.join(MNOTESHOME, fname));
+	addnb_todb(fname);
 }
 
 function openNav(opt) {
@@ -431,6 +451,8 @@ function mreplace(str, find, rep) {
 function parseNote(content = "") {
 
 	content = content.replace(/\\@/g, "&at;");
+	content = content.replace(/\\\[/g, "&ob;");
+	content = content.replace(/\\\]/g, "&cb;");
 	content = content.replace(/\\\\/g, "&slash;");
 	content = mreplace(content, "<", "&lt;");
 	content = mreplace(content, ">", "&gt;");
@@ -497,6 +519,8 @@ function parseNote(content = "") {
 	}
 
 	ret = mreplace(ret, "&at;", "@");
+	ret = mreplace(ret, "&ob;", "[");
+	ret = mreplace(ret, "&cb;", "]");
 	ret = mreplace(ret, "&slash;", "\\");
 
 	for (var key in MNOTES_STYLES) {
